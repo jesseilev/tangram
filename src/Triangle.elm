@@ -46,6 +46,21 @@ vertices : Triangle a -> (Point2d, Point2d, Point2d)
 vertices t =
   ( hull t, foot0 t, foot1 t )
 
+triangle2d : Triangle a -> Triangle2d
+triangle2d t =
+  Triangle2d.fromVertices (vertices t)
+
+
+
+example0 : a -> Triangle a 
+example0 x = 
+  { scalevel = 2
+  , quarterturn = QT1
+  , skew = Straight
+  , anchor = Point2d.pixels 1 1
+  , data = x
+  }
+
 cannonicalTriangle : Skew -> Triangle2d
 cannonicalTriangle skew =
   case skew of
@@ -112,10 +127,6 @@ foot1 t =
 
 
 
-
-
------
-
 main : Program () Model Msg
 main =
     Browser.element
@@ -131,7 +142,7 @@ type alias Model = {triangles: List Tri}
 init : () -> (Model, Cmd Msg)
 init _ =
   ( { triangles = [] }
-  , Random.generate NewTriangles (Random.list 10 triGenerator)
+  , Random.generate NewTriangles (Random.list 6 triGenerator)
   )
 
 
@@ -185,7 +196,7 @@ view model =
         |> Frame2d.reverseY
     scene = Svg.relativeTo topLeftFrame
       (Svg.scaleAbout Point2d.origin 32
-        (Svg.g [] ([triangles] ++ dots ++ [origin] ))
+        (Svg.g [] ([triangles] ++ [] ++ [origin] ))
       )
   in
     Svg.svg
@@ -209,9 +220,9 @@ viewTriangle tri =
     drawTri t = Svg.triangle2d (attrs tri.data.color) t
 
     hl = hullLocation 0 tri
-    dot = Svg.circle2d (attrs Color.blue) (Circle2d.withRadius (pixels 0.3) hl)
+    dot = Svg.circle2d (attrs Color.red) (Circle2d.withRadius (pixels 0.1) hl)
   in
-  Svg.g [] [ drawTri t0, drawTri t1, dot ]
+    Svg.g [] [ drawTri t0, drawTri t1, dot ]
 
 hullLocation : Int -> Tri -> Point2d.Point2d Pixels YUpCoordinates
 hullLocation scalevel tri =
@@ -249,7 +260,7 @@ triGenerator =
       )
 
 tDataGenerator =
-  Random.map4 Color.rgba genFloat01 genFloat01 genFloat01 (Random.float 0.3 0.6)
+  Random.map4 Color.rgba genFloat01 genFloat01 genFloat01 (Random.float 0.25 0.60)
     |> Random.map TData
 
 
@@ -258,8 +269,8 @@ genFloat01 =
 
   -- Random.map4 Triangle scalevelGenerator qtGenerator (anchorGenerator -2) skewGenerator
 
-minSL = -2
-maxSL = 4
+minSL = -1
+maxSL = 3
 slDiff = maxSL - minSL
 foo = maxSL - 1
 

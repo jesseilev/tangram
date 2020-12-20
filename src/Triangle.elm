@@ -125,7 +125,15 @@ foot1 : Triangle a -> Point2d
 foot1 t =
   v2 (mkTriangle2d t)
 
+qtDegrees qt = 
+  case qt of
+    QT0 -> 0
+    QT1 -> 90
+    QT2 -> 180
+    QT3 -> 270
 
+qtAngle = 
+  Angle.degrees << qtDegrees
 
 main : Program () Model Msg
 main =

@@ -1,12 +1,5 @@
 module Snowcream exposing (..)
 
--- this is a template meant to be copied
--- so you can get started quickly on a new concept without retyping a bunch of boilerplate
--- 1. duplicate this file 
--- 2. rename the file <MyModuleName>.elm
--- 3. change the word "Template" above: module <MyModuleName> exposing (..)
--- 4. visit in the browser and make sure it works
--- 5. start coding!
 
 import Triangle as T exposing (Triangle)
 import Browser
@@ -58,9 +51,9 @@ triRoot =
   Random.map4
     (\r g b a ->
       { location = Point2d.origin |> Point2d.translateBy (Vector2d.pixels 0 -unit)
-      , scalevel = 1
+      , scalevel = 2
       , qt = T.QT0
-      , mirrorAxis = Axis2d.through Point2d.origin Direction2d.y
+      , mirrors = [ Axis2d.through Point2d.origin Direction2d.y ]
       , data = { color = Color.rgba r g b 1 }
       }
     )
@@ -100,7 +93,7 @@ update msg model =
 view : Model -> Html Msg 
 view model = 
   Html.div 
-    [ Html.Attributes.style "background" "lightGrey" ]
+    [ Html.Attributes.style "background" "white" ]
     [ viewCanvas model
     , Html.div []
         [ Html.input 
@@ -136,10 +129,18 @@ viewCanvas model =
         (h |> Point2d.translateBy (Vector2d.pixels unit 0))
         (h |> Point2d.translateBy (Vector2d.pixels 0 unit))
 
+
     drawTri mt = 
-      Svg.g [] 
-        [ Svg.triangle2d (shapeAttrs mt.data.color) (mkTriangle mt)
-        , Svg.triangle2d (shapeAttrs mt.data.color) (twin mt.mirrorAxis (mkTriangle mt))]
+      let 
+        draw = Svg.triangle2d (shapeAttrs mt.data.color)
+        regularTri = draw (mkTriangle mt)
+        mirroredTri m = draw (Triangle2d.mirrorAcross m (mkTriangle mt))
+
+        addMirror : Axis2d Pixels () -> Svg Msg -> Svg Msg
+        addMirror mAxis orig = Svg.g [] [ orig, Svg.mirrorAcross mAxis orig ]
+      in
+        Svg.g [] <| [ List.foldr addMirror regularTri mt.mirrors ]
+        -- <| regularTri :: (List.map mirroredTri mt.mirrors)
 
     twin axis t = 
       Triangle2d.mirrorAcross axis t
@@ -162,7 +163,7 @@ type alias TModel a =
   { location : Point2d Pixels ()
   , scalevel : Int 
   , qt : T.QuarterTurn
-  , mirrorAxis : Axis2d Pixels ()
+  , mirrors : List (Axis2d Pixels ())
   , data : a
   }
 
@@ -183,7 +184,7 @@ mkChild parent =
     childLocGenerator = 
       T.chooseWithDefault hull [ hull, foot0, foot1 ]
     scaleDiffGenerator =
-      T.chooseWithDefault 1 [ -3, -2, -1, 0, 1, 2, 3 ]
+      T.chooseWithDefault 1 [ -3, -2, -1, 0, 1 ]
 
     qtGenerator = 
       T.chooseWithDefault T.QT3        
@@ -192,9 +193,9 @@ mkChild parent =
     plusMinusGenerator = T.chooseWithDefault 1 [1, -1]
 
     dynastyGenerator = 
-      T.chooseWithDefault False [True, False, False, False, False, False, False]
+      T.chooseWithDefault False [True, False, False]
 
-    makeTheChild childQt mkChildLoc scaleDiff plusMinus =
+    makeTheChild childQt mkChildLoc scaleDiff plusMinus dynasty =
       let 
         childScalevel = parent.scalevel + scaleDiff
         childHueRotation = 8 * -plusMinus * pr2 childScalevel
@@ -205,7 +206,7 @@ mkChild parent =
 
         childSat = 0.08 * plusMinus * pr2 childScalevel
 
-        childOpac = 0.5 * plusMinus * pr2 childScalevel
+        childOpac = 0.4 * plusMinus * pr2 childScalevel
           --0.1 * (pr2 -childScalevel - pr2 0)
 
         childColor = 
@@ -220,16 +221,16 @@ mkChild parent =
       { location = childLocation 
       , scalevel = childScalevel
       , qt = childQt 
-      , mirrorAxis = 
-          parent.mirrorAxis
-          -- if dynasty then 
-          --   Axis2d.through childLocation Direction2d.y 
-          -- else 
-          --   parent.mirrorAxis
+      , mirrors = 
+          parent.mirrors ++
+            if dynasty then 
+              [ Axis2d.through childLocation Direction2d.y ]
+            else 
+              []
       , data = { color = childColor }
       }    
   in
-  Random.map4 makeTheChild qtGenerator childLocGenerator scaleDiffGenerator plusMinusGenerator
+  Random.map5 makeTheChild qtGenerator childLocGenerator scaleDiffGenerator plusMinusGenerator dynastyGenerator
 
 mkTriangle : TModel TData -> Triangle2d Pixels ()
 mkTriangle tm = 

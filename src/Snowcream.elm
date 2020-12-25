@@ -183,7 +183,7 @@ mkChild parent =
     childLocGenerator = 
       T.chooseWithDefault hull [ hull, foot0, foot1 ]
     scaleDiffGenerator =
-      T.chooseWithDefault 1 [ -3, -1, 1, 3 ]
+      T.chooseWithDefault 1 [ -3, -2, -1, 0, 1, 2, 3 ]
 
     qtGenerator = 
       T.chooseWithDefault T.QT3        

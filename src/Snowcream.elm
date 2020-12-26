@@ -1,7 +1,7 @@
 module Snowcream exposing (..)
 
 
--- TODO 
+-- TODO
 -- nice slider ui
 -- download image
 
@@ -33,35 +33,35 @@ import List.Extra as List
 import Json.Decode as Decode
 
 
--- MODEL 
-type alias Model = 
-  { tModels : List (TModel TData) 
+-- MODEL
+type alias Model =
+  { tModels : List (TModel TData)
   , targetCount : Int
   , bgColor : Color
   }
 
-type alias TData = 
+type alias TData =
   { color : Color }
 
 type alias Flags = ()
 
 init : Flags -> (Model, Cmd Msg)
-init flags = 
+init flags =
   ({ tModels = [ ]
   , targetCount = 0
   , bgColor = Color.red
   }
-  , Random.generate GenBackground colorGenerator 
+  , Random.generate GenBackground colorGenerator
   )
 
     -- |> Dom.getViewport
 
 triRoot : Color -> Random.Generator (TModel TData)
-triRoot bgColor = 
+triRoot bgColor =
   Random.map4
     (\r g b a ->
       { location = Point2d.origin |> Point2d.translateBy (Vector2d.pixels 0 -unit)
-      , scalevel = 2
+      , scalevel = -1
       , qt = T.QT0
       , mirrors = [ Axis2d.through Point2d.origin Direction2d.y ]
       , data = { color = Color.weightedMix bgColor (Color.rgba r g b a) 0.1 }
@@ -73,10 +73,10 @@ triRoot bgColor =
 growOrPruneTree newTc model =
   let newTModels = List.take newTc model.tModels in
   ( { model | targetCount = newTc, tModels = newTModels }
-  , if List.length newTModels < newTc then 
-      Cmd.batch 
+  , if List.length newTModels < newTc then
+      Cmd.batch
         [ Random.generate ChildT (childGenerator newTModels)
-        , if List.length newTModels == 0 then 
+        , if List.length newTModels == 0 then
             Random.generate GenBackground colorGenerator
           else
             Cmd.none
@@ -86,7 +86,7 @@ growOrPruneTree newTc model =
   )
 
 -- UPDATE
-type Msg 
+type Msg
   = NoOp
   | ChildT (TModel TData)
   | ChangeTargetCount Int
@@ -94,8 +94,8 @@ type Msg
 
 update : Msg -> Model -> (Model, Cmd Msg)
 update msg model =
-  case msg of 
-    ChildT childT -> 
+  case msg of
+    ChildT childT ->
       let newModel = { model | tModels = model.tModels ++ [childT] } in
       growOrPruneTree newModel.targetCount newModel
 
@@ -107,14 +107,14 @@ update msg model =
       , Cmd.none
       )
 
-    _ -> 
+    _ ->
       (model, Cmd.none)
 
 -- VIEW
-view : Model -> Html Msg 
-view model = 
-  Html.div 
-    [ Html.Attributes.style "background" "black" 
+view : Model -> Html Msg
+view model =
+  Html.div
+    [ Html.Attributes.style "background" "black"
     , Html.Attributes.style "height" "100%"
     , Html.Attributes.style "width" "100%"
     , Html.Attributes.style "display" "flex"
@@ -122,12 +122,12 @@ view model =
     , Html.Attributes.style "position" "absolute"
     , Html.Attributes.style "align-items" "center"
     ]
-    [ Html.div 
-        [] 
+    [ Html.div
+        []
         [ viewCanvas model
         , Html.div []
-            [ Html.input 
-                [ Html.Attributes.type_ "range" 
+            [ Html.input
+                [ Html.Attributes.type_ "range"
                 , Html.Attributes.min "0"
                 , Html.Attributes.max "75"
                 , Html.Attributes.step "1"
@@ -141,26 +141,26 @@ view model =
                 , Html.Attributes.style "outline" "none"
                 ]
                 []
-            , Html.div [] 
+            , Html.div []
                 [ Html.text (String.fromInt model.targetCount ++ " tiles") ]
             ]
         ]
     ]
 
-viewCanvas : Model -> Html Msg 
-viewCanvas model = 
+viewCanvas : Model -> Html Msg
+viewCanvas model =
   let
     topLeftFrame =
       Frame2d.atPoint (Point2d.pixels -(frameSize/2) (frameSize/2))
         |> Frame2d.reverseY
 
     origin =
-      Svg.circle2d [Svg.Attributes.fill "black"] 
-        (Circle2d.withRadius (pixels 10) Point2d.origin) 
+      Svg.circle2d [Svg.Attributes.fill "black"]
+        (Circle2d.withRadius (pixels 10) Point2d.origin)
 
-    bgRect = 
-      Svg.rect 
-        [ Svg.Attributes.fill (Color.toCssString model.bgColor) 
+    bgRect =
+      Svg.rect
+        [ Svg.Attributes.fill (Color.toCssString model.bgColor)
         , Svg.Attributes.width "100%"
         , Svg.Attributes.height "100%"
         , Svg.Attributes.x "-50%"
@@ -168,14 +168,14 @@ viewCanvas model =
         ]
         []
 
-    triSw h = 
-      Triangle2d.from h 
+    triSw h =
+      Triangle2d.from h
         (h |> Point2d.translateBy (Vector2d.pixels unit 0))
         (h |> Point2d.translateBy (Vector2d.pixels 0 unit))
 
 
-    drawTri mt = 
-      let 
+    drawTri mt =
+      let
         regularTri = Svg.triangle2d (shapeAttrs mt.data.color) (mkTriangle mt)
         addMirror : Axis2d Pixels () -> Svg Msg -> Svg Msg
         addMirror mAxis orig = Svg.g [] [ orig, Svg.mirrorAcross mAxis orig ]
@@ -184,7 +184,7 @@ viewCanvas model =
 
     scene =
       Svg.relativeTo topLeftFrame
-        (Svg.g [] <| List.concat 
+        (Svg.g [] <| List.concat
           [ [ bgRect ]
           , List.map drawTri model.tModels
           , []
@@ -199,9 +199,9 @@ viewCanvas model =
       [ scene ]
 
 
-type alias TModel a = 
+type alias TModel a =
   { location : Point2d Pixels ()
-  , scalevel : Int 
+  , scalevel : Int
   , qt : T.QuarterTurn
   , mirrors : List (Axis2d Pixels ())
   , data : a
@@ -211,101 +211,101 @@ type alias TModel a =
 childGenerator : List (TModel TData) -> Random.Generator (TModel TData)
 childGenerator parents =
   triRoot Color.black |> Random.andThen  -- TODO black is dumb, refactor this
-    (\newTri -> 
+    (\newTri ->
       Random.choose parents
-        |> Random.andThen (\(maybeP, _) -> 
+        |> Random.andThen (\(maybeP, _) ->
           Maybe.map mkChild maybeP |> Maybe.withDefault (Random.constant newTri)
         )
     )
 
-colorGenerator : Random.Generator Color 
+colorGenerator : Random.Generator Color
 colorGenerator =
   Random.map3 Color.rgb (Random.float 0 1) (Random.float 0 1) (Random.float 0 1)
 
 mkChild : TModel TData -> Random.Generator (TModel TData)
 mkChild parent =
-  let 
-    childLocGenerator = 
+  let
+    childLocGenerator =
       T.chooseWithDefault hull [ hull, foot0, foot1 ]
     scaleDiffGenerator =
-      T.chooseWithDefault 1 [ -3, -2, -1, 0, 1 ]
+      Random.weighted (1, 0) [ (1, -3), (1, -2), (2, -1), (2, 1), (1, 2) ]
 
-    qtGenerator = 
-      T.chooseWithDefault T.QT3        
+    qtGenerator =
+      T.chooseWithDefault T.QT3
         [ T.QT0, T.QT3 ]
 
     plusMinusGenerator = T.chooseWithDefault 1 [1, -1]
 
-    dynastyGenerator = 
+    dynastyGenerator =
       T.chooseWithDefault False [True, False]
 
     makeTheChild childQt mkChildLoc scaleDiff plusMinus dynasty =
-      let 
+      let
         childScalevel = parent.scalevel + scaleDiff
-        childHueRotation = 8 * -plusMinus * pr2 childScalevel
+        childHueRotation = 12 * -plusMinus * pr2 childScalevel
           -- (T.qtDegrees childQt - 180) * 0.1 * pr2 (parent.scalevel - 1)
 
-        childDarken = 0.1 * plusMinus * pr2 childScalevel
+        childDarken = 0.09 * plusMinus * pr2 childScalevel
           -- (T.qtDegrees childQt - 180) * (pr2 (parent.scalevel - 1)) * 0.002
 
-        childSat = 0.08 * plusMinus * pr2 childScalevel
+        childSat = 0.15 * plusMinus * pr2 childScalevel
 
-        childOpac = 0.2 * plusMinus * pr2 childScalevel
+        childOpac = 0.15 * plusMinus * pr2 childScalevel + (-0.05 * toFloat childScalevel)
           --0.1 * (pr2 -childScalevel - pr2 0)
 
-        childColor = 
-          parent.data.color 
+        childColor =
+          parent.data.color
             |> Color.darken childDarken
-            |> Color.saturate childSat 
+            |> Color.saturate childSat
             |> Color.rotateHue childHueRotation
-            -- |> Color.fadeIn childOpac
+            |> Color.fadeIn childOpac
 
         childLocation = mkChildLoc <| mkTriangle parent
       in
-      { location = childLocation 
+      { location = childLocation
       , scalevel = childScalevel
-      , qt = childQt 
-      , mirrors = 
+      , qt = childQt
+      , mirrors =
           parent.mirrors ++
-            if dynasty then 
+            if dynasty then
               [ Axis2d.through childLocation Direction2d.y ]
-            else 
+            else
               []
       , data = { color = childColor }
-      }    
+      }
   in
   Random.map5 makeTheChild qtGenerator childLocGenerator scaleDiffGenerator plusMinusGenerator dynastyGenerator
 
 mkTriangle : TModel TData -> Triangle2d Pixels ()
-mkTriangle tm = 
+mkTriangle tm =
   let edgeLength = unit * pr2 tm.scalevel in
-  Triangle2d.from tm.location 
+  Triangle2d.from tm.location
     (tm.location |> Point2d.translateBy (Vector2d.pixels edgeLength 0))
     (tm.location |> Point2d.translateBy (Vector2d.pixels 0 edgeLength))
-    |> Triangle2d.rotateAround tm.location 
+    |> Triangle2d.rotateAround tm.location
       (Angle.degrees (T.qtDegrees tm.qt + skewDegrees (mkSkew tm.scalevel)))
 
-mkSkew sca = 
-  case sca |> modBy 2 of 
+mkSkew sca =
+  case sca |> modBy 2 of
     0 -> T.Straight
     _ -> T.Tilted
 
 
 skewDegrees skew =
-  case skew of 
+  case skew of
     T.Straight -> 0
     T.Tilted -> 45
 
-foot0 t2d = 
-  let (_, f0, _ ) = Triangle2d.vertices t2d in 
+foot0 t2d =
+  let (_, f0, _ ) = Triangle2d.vertices t2d in
   f0
 
-hull t2d = 
-  let (h, f0, _ ) = Triangle2d.vertices t2d in 
+hull t2d =
+  let (h, f0, _ ) = Triangle2d.vertices t2d in
   h
 
-foot1 t2d = 
-  let (h, f0, f1 ) = Triangle2d.vertices t2d in 
+foot1 t2d =
+  let (h, f0, f1 ) = Triangle2d.vertices t2d in
   f1
 
 frameSize = 700
@@ -314,18 +314,18 @@ unit = p2 -2 * frameSize
 unitScale n =
   p2 n * unit
 
-p2 : Int -> Float 
+p2 : Int -> Float
 p2 n =
   pr2 (n * 2)
 
-pr2 : Int -> Float 
+pr2 : Int -> Float
 pr2 n =
   sqrt 2 ^ toFloat n
 
-shapeAttrs clr = 
+shapeAttrs clr =
   [ Svg.Attributes.strokeWidth "0"
   , Svg.Attributes.fill (Color.toCssString clr)
-  , Svg.Attributes.opacity "0.5"
+  -- , Svg.Attributes.opacity "0.5"
   ]
 
 lineAttrs clr =
